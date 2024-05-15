@@ -25,6 +25,10 @@ namespace CoffeeBara.FiniteStateMachine {
             _onTick = onTick;
         }
 
+        public static StateBuilder<T> GetBuilder() {
+            return new StateBuilder<T>();
+        }
+
         public void SetTransitions(params Transition<T>[] transitions) {
             _transitions = transitions;
         }

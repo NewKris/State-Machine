@@ -7,6 +7,8 @@ namespace CoffeeBara.FiniteStateMachine {
         private Action<T> _onExit;
         private Action<T> _onTick;
 
+        internal StateBuilder() {}
+        
         public State<T> Build() {
             return new State<T>(
                 _stateName,
