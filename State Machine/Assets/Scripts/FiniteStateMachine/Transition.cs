@@ -1,16 +1,64 @@
-namespace CoffeeBara.FiniteStateMachine {
-    public readonly struct Transition<T> {
-        public delegate bool TransitionCondition(T dependency);
-        
-        public readonly State<T> toState;
-        public readonly TransitionCondition condition;
+using System;
 
-        public Transition(
-            State<T> toState, 
+namespace CoffeeBara.FiniteStateMachine {
+    public class Transition<T> {
+        public event Action<State<T>> OnTransitionTriggered; 
+        
+        public delegate bool TransitionCondition(T dependency);
+
+        private readonly bool _hasTrigger;
+        private readonly bool _hasCondition;
+        private readonly Trigger<T> _trigger;
+        private readonly State<T> _toState;
+        private readonly TransitionCondition _condition;
+
+        public State<T> ToState => _toState;
+
+        internal Transition(
+            Trigger<T> trigger,
+            State<T> toState,
             TransitionCondition condition
         ) {
-            this.toState = toState;
-            this.condition = condition;
+            _hasTrigger = trigger != null;
+            _hasCondition = condition != null;
+            
+            _trigger = trigger;
+            _toState = toState;
+            _condition = condition;
+        }
+
+        public static TransitionBuilder<T> GetBuilder() {
+            return new TransitionBuilder<T>();
+        }
+        
+        public bool Evaluate(T dependency) {
+            if (_hasTrigger || !_hasCondition) {
+                return false;
+            }
+            
+            return _condition.Invoke(dependency);
+        }
+
+        public void Activate() {
+            if (!_hasTrigger) {
+                return;
+            }
+            
+            _trigger.OnTriggered += OnTriggered;
+        }
+
+        public void DeActivate() {
+            if (!_hasTrigger) {
+                return;
+            }
+            
+            _trigger.OnTriggered -= OnTriggered;
+        }
+
+        private void OnTriggered(T dependency) {
+            if (!_hasCondition || _condition.Invoke(dependency)) {
+                OnTransitionTriggered?.Invoke(_toState);
+            }
         }
     }
 }

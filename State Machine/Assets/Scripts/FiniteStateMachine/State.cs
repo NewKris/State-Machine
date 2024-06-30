@@ -8,8 +8,9 @@ namespace CoffeeBara.FiniteStateMachine {
         private readonly Action<T> _onExit;
         private readonly Action<T> _onTick;
 
+        private bool _enabled;
+        private bool _hasTransitions;
         private Transition<T>[] _transitions;
-        private TriggeredTransition<T>[] _triggeredTransitions;
 
         public string StateName { get; }
 
@@ -23,6 +24,9 @@ namespace CoffeeBara.FiniteStateMachine {
             _onEnter = onEnter;
             _onExit = onExit;
             _onTick = onTick;
+            
+            _enabled = false;
+            _hasTransitions = false;
         }
 
         public static StateBuilder<T> GetBuilder() {
@@ -31,23 +35,18 @@ namespace CoffeeBara.FiniteStateMachine {
 
         public void SetTransitions(params Transition<T>[] transitions) {
             _transitions = transitions;
-        }
-
-        public void SetTriggeredTransitions(params TriggeredTransition<T>[] triggeredTransitions) {
-            _triggeredTransitions = triggeredTransitions;
-            
-            foreach (TriggeredTransition<T> triggeredTransition in _triggeredTransitions) {
-                triggeredTransition.OnTransitionTriggered += ForceExit;
-            }
+            _hasTransitions = transitions.Length > 0;
         }
 
         public void Enter(T dependency) {
-            ActivateTriggers(_triggeredTransitions);
+            _enabled = true;
+            
+            EnableTransitions(_transitions);
             _onEnter?.Invoke(dependency);
         }
         
         public void Exit(T dependency) {
-            DeActivateTriggers(_triggeredTransitions);
+            DisableTransitions(_transitions);
             _onExit?.Invoke(dependency);
         }
 
@@ -56,34 +55,43 @@ namespace CoffeeBara.FiniteStateMachine {
         }
 
         public void TryTransition(T dependency) {
-            if (_transitions == null) return;
+            if (!_hasTransitions || !_enabled) return;
             
             foreach (Transition<T> transition in _transitions) {
-                if (!transition.condition(dependency)) continue;
+                if (!transition.Evaluate(dependency)) continue;
                 
-                OnExitState?.Invoke(transition.toState);
+                ExitState(transition.ToState);
                 break;
             }
         }
+        
+        private void EnableTransitions(Transition<T>[] transitions) {
+            if (transitions == null) {
+                return;
+            }
 
-        private void ForceExit(State<T> toState) {
+            foreach (Transition<T> transition in transitions) {
+                transition.OnTransitionTriggered += ExitState;
+                transition.Activate();
+            }
+        }
+
+        private void DisableTransitions(Transition<T>[] transitions) {
+            if (transitions == null) {
+                return;
+            }
+            
+            foreach (Transition<T> transition in transitions) {
+                transition.OnTransitionTriggered -= ExitState;
+                transition.DeActivate();
+            }
+        }
+
+        private void ExitState(State<T> toState) {
+            if (!_enabled) return;
+            
+            _enabled = false;
             OnExitState?.Invoke(toState);
-        }
-
-        private static void ActivateTriggers(TriggeredTransition<T>[] triggers) {
-            if (triggers == null) return;
-            
-            foreach (TriggeredTransition<T> triggeredTransition in triggers) {
-                triggeredTransition.Activate();
-            }
-        }
-
-        private static void DeActivateTriggers(TriggeredTransition<T>[] triggers) {
-            if (triggers == null) return;
-            
-            foreach (TriggeredTransition<T> triggeredTransition in triggers) {
-                triggeredTransition.DeActivate();
-            }
         }
     }
 }

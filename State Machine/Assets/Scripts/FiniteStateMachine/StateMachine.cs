@@ -7,6 +7,7 @@ namespace CoffeeBara.FiniteStateMachine {
         private State<T> _currentState;
         
         private readonly T _stateDependency;
+        private readonly State<T> _defaultState;
         private readonly Transition<T>[] _anyTransitions;
         private readonly Queue<State<T>> _queuedStates;
 
@@ -20,15 +21,19 @@ namespace CoffeeBara.FiniteStateMachine {
             _queuedStates = new Queue<State<T>>();
             
             _currentState = defaultState;
+            _defaultState = defaultState;
             _stateDependency = stateDependency;
             _anyTransitions = anyTransitions;
             
             _currentState.OnExitState += OnStateExited;
             _currentState.Enter(_stateDependency);
+            
+            EnableAnyTransitions();
         }
 
         ~StateMachine() {
             _currentState.OnExitState -= OnStateExited;
+            DisableAnyTransitions();
         }
         
         public void Tick() {
@@ -59,16 +64,35 @@ namespace CoffeeBara.FiniteStateMachine {
             _queuedStates.Enqueue(nextState);
         }
 
+        private void EnableAnyTransitions() {
+            if (_anyTransitions == null) {
+                return;
+            }
+            
+            foreach (Transition<T> anyTransition in _anyTransitions) {
+                anyTransition.OnTransitionTriggered += OnStateExited;
+            }
+        }
+
+        private void DisableAnyTransitions() {
+            if (_anyTransitions == null) {
+                return;
+            }
+            
+            foreach (Transition<T> anyTransition in _anyTransitions) {
+                anyTransition.OnTransitionTriggered -= OnStateExited;
+            }
+        }
+
         private void TryAnyTransition() {
             if (_anyTransitions == null) {
                 return;
             }
             
             foreach (Transition<T> anyTransition in _anyTransitions) {
-                if (!anyTransition.condition(_stateDependency)) continue;
-
-                OnStateExited(anyTransition.toState);
-                break;
+                if (anyTransition.Evaluate(_stateDependency)) {
+                    break;
+                }
             }
         }
     }
