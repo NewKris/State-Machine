@@ -1,6 +1,6 @@
 using System;
 
-namespace CoffeeBara.FiniteStateMachine {
+namespace NewKris.FiniteStateMachine {
     public class StateBuilder<T> {
         private string _stateName = "State";
         private Action<T> _onEnter;

@@ -1,6 +1,6 @@
 using System;
 
-namespace CoffeeBara.FiniteStateMachine {
+namespace NewKris.FiniteStateMachine {
     public class State<T> {
         public event Action<State<T>> OnExitState;
 
@@ -38,30 +38,34 @@ namespace CoffeeBara.FiniteStateMachine {
             _hasTransitions = transitions.Length > 0;
         }
 
-        public void Enter(T dependency) {
+        internal void Enter(T dependency) {
             _enabled = true;
             
             EnableTransitions(_transitions);
             _onEnter?.Invoke(dependency);
         }
         
-        public void Exit(T dependency) {
+        internal void Exit(T dependency) {
+            _enabled = false;
+
             DisableTransitions(_transitions);
             _onExit?.Invoke(dependency);
         }
 
-        public void Tick(T dependency) {
+        internal void Tick(T dependency) {
             _onTick?.Invoke(dependency);
         }
 
-        public void TryTransition(T dependency) {
-            if (!_hasTransitions || !_enabled) return;
+        internal void TryTransition(T dependency) {
+            if (!_hasTransitions || !_enabled) {
+                return;
+            }
             
             foreach (Transition<T> transition in _transitions) {
-                if (!transition.Evaluate(dependency)) continue;
-                
-                ExitState(transition.ToState);
-                break;
+                if (transition.Evaluate(dependency)) {
+                    ExitState(transition.ToState);
+                    break;
+                }
             }
         }
         
@@ -86,11 +90,12 @@ namespace CoffeeBara.FiniteStateMachine {
                 transition.DeActivate();
             }
         }
-
+        
         private void ExitState(State<T> toState) {
-            if (!_enabled) return;
+            if (!_enabled) {
+                return;
+            }
             
-            _enabled = false;
             OnExitState?.Invoke(toState);
         }
     }

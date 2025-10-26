@@ -1,10 +1,12 @@
-namespace CoffeeBara.FiniteStateMachine {
+namespace NewKris.FiniteStateMachine {
     public class TransitionBuilder<T> {
+        private readonly State<T> _toState;
         private Trigger<T> _trigger;
-        private State<T> _toState;
         private Transition<T>.TransitionCondition _condition;
-        
-        internal TransitionBuilder() {}
+
+        internal TransitionBuilder(State<T> toState) {
+            _toState = toState;
+        }
 
         public Transition<T> Build() {
             return new Transition<T>(_trigger, _toState, _condition);
@@ -12,11 +14,6 @@ namespace CoffeeBara.FiniteStateMachine {
 
         public TransitionBuilder<T> SetTrigger(Trigger<T> trigger) {
             _trigger = trigger;
-            return this;
-        }
-
-        public TransitionBuilder<T> ToState(State<T> toState) {
-            _toState = toState;
             return this;
         }
 

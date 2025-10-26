@@ -1,6 +1,6 @@
 using System;
 
-namespace CoffeeBara.FiniteStateMachine {
+namespace NewKris.FiniteStateMachine {
     public class Trigger<T> {
         public event Action<T> OnTriggered;
 

@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using UnityEngine;
 
-namespace CoffeeBara.FiniteStateMachine {
+namespace NewKris.FiniteStateMachine {
     public class StateMachine<T> {
         [NotNull]
         private State<T> _currentState;
@@ -12,11 +13,12 @@ namespace CoffeeBara.FiniteStateMachine {
         private readonly Queue<State<T>> _queuedStates;
 
         public string CurrentStateName => _currentState.StateName;
+        public bool DebugMode { get; set; }
         
         public StateMachine(
             State<T> defaultState,
             T stateDependency,
-            params Transition<T>[] anyTransitions
+            Transition<T>[] anyTransitions
         ) {
             _queuedStates = new Queue<State<T>>();
             
@@ -38,6 +40,7 @@ namespace CoffeeBara.FiniteStateMachine {
         
         public void Tick() {
             _currentState.Tick(_stateDependency);
+            
             _currentState.TryTransition(_stateDependency);
             TryAnyTransition();
             
@@ -58,6 +61,10 @@ namespace CoffeeBara.FiniteStateMachine {
 
             _currentState.OnExitState += OnStateExited;
             _currentState.Enter(_stateDependency);
+
+            if (DebugMode) {
+                Debug.Log($"Entered state {_currentState.StateName}");
+            }
         }
 
         private void OnStateExited(State<T> nextState) {
@@ -71,6 +78,7 @@ namespace CoffeeBara.FiniteStateMachine {
             
             foreach (Transition<T> anyTransition in _anyTransitions) {
                 anyTransition.OnTransitionTriggered += OnStateExited;
+                anyTransition.Activate();
             }
         }
 
@@ -81,6 +89,7 @@ namespace CoffeeBara.FiniteStateMachine {
             
             foreach (Transition<T> anyTransition in _anyTransitions) {
                 anyTransition.OnTransitionTriggered -= OnStateExited;
+                anyTransition.DeActivate();
             }
         }
 
@@ -90,7 +99,8 @@ namespace CoffeeBara.FiniteStateMachine {
             }
             
             foreach (Transition<T> anyTransition in _anyTransitions) {
-                if (anyTransition.Evaluate(_stateDependency)) {
+                if (anyTransition.Evaluate(_stateDependency) && _currentState != anyTransition.ToState) {
+                    OnStateExited(anyTransition.ToState);
                     break;
                 }
             }

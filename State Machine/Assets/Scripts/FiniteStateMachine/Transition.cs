@@ -1,6 +1,6 @@
 using System;
 
-namespace CoffeeBara.FiniteStateMachine {
+namespace NewKris.FiniteStateMachine {
     public class Transition<T> {
         public event Action<State<T>> OnTransitionTriggered; 
         
@@ -27,8 +27,10 @@ namespace CoffeeBara.FiniteStateMachine {
             _condition = condition;
         }
 
-        public static TransitionBuilder<T> GetBuilder() {
-            return new TransitionBuilder<T>();
+        public static TransitionBuilder<T> GetBuilder(State<T> toState) {
+            return new TransitionBuilder<T>(toState) {
+                
+            };
         }
         
         public bool Evaluate(T dependency) {
